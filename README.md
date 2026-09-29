@@ -17,8 +17,7 @@ Gebaut mit [n8n](https://n8n.io) (selbst gehostet) und GPT-4o-mini.
 
 ## Das Problem
 
-Bei der Nordlicht Büroeinrichtung GmbH tippt jemand die Daten aus jeder Lieferanten-
-rechnung von Hand in die Buchhaltung: Lieferant, Betrag, MwSt, Fälligkeit. Das ist
+Bei der Nordlicht Büroeinrichtung GmbH tippt jemand die Daten aus jeder Lieferantenrechnung von Hand in die Buchhaltung: Lieferant, Betrag, MwSt, Fälligkeit. Das ist
 zeitraubend, fehleranfällig – und die teuerste Falle ist, dieselbe Rechnung versehentlich
 **zweimal** zu bezahlen.
 
