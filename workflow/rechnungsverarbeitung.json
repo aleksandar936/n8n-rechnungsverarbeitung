@@ -1,0 +1,426 @@
+{
+  "name": "Rechnungsverarbeitung",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Rechnungseingang",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Rechnung",
+              "fieldType": "file",
+              "acceptFileTypes": ".pdf"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.5,
+      "position": [
+        -1568,
+        -128
+      ],
+      "id": "241848bb-d69e-4e07-adce-7c2c8bcbf5f8",
+      "name": "Rechnung hochladen",
+      "webhookId": "REPLACE-WITH-YOUR-OWN-ON-IMPORT"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "Rechnung",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        -1360,
+        -128
+      ],
+      "id": "7edc9aa1-562e-43f5-8996-e211892f81ff",
+      "name": "PDF-Text extrahieren"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=Du bist ein Buchhaltungs-Assistent. Extrahiere aus dem folgenden Rechnungstext die Daten und gib AUSSCHLIESSLICH ein JSON-Objekt zurück, ohne Erklärung, ohne Markdown. Felder: lieferant, rechnungsnummer, rechnungsdatum (YYYY-MM-DD), faelligkeit (YYYY-MM-DD), netto (Zahl), mwst (Zahl), brutto (Zahl), iban. Wenn ein Feld fehlt, setze null.\n\nRechnungstext:\n{{ $json.text }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        -1152,
+        -128
+      ],
+      "id": "e03878ae-1422-4303-9199-14315173d5f4",
+      "name": "KI-Auslese (GPT-4o-mini)",
+      "credentials": {
+        "openAiApi": {
+          "id": "YOUR_OPENAI_CREDENTIAL_ID",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const inp = $input.first().json;\n\n// Rohtext an allen möglichen Stellen suchen\nlet roh =\n  inp.output?.[0]?.content?.[0]?.text ??\n  inp.output?.content ??\n  inp.message?.content ??\n  inp.text ??\n  inp.output ??\n  inp;\n\n// \"```json ... ```\" abstreifen, falls vorhanden\nif (typeof roh === 'string') {\n  roh = roh.replace(/```json/gi, '').replace(/```/g, '').trim();\n}\n\n// Wenn die KI kein gültiges JSON liefert, nicht abbrechen,\n// sondern leere Felder weitergeben -> die Prüfung markiert das als Fehler.\nlet daten = {};\nlet parseFehler = false;\ntry {\n  daten = typeof roh === 'string' ? JSON.parse(roh) : (roh || {});\n} catch (e) {\n  parseFehler = true;\n  daten = {};\n}\n\nreturn [{\n  json: {\n    lieferant: daten.lieferant ?? null,\n    rechnungsnummer: daten.rechnungsnummer ?? null,\n    rechnungsdatum: daten.rechnungsdatum ?? null,\n    faelligkeit: daten.faelligkeit ?? null,\n    netto: daten.netto ?? null,\n    mwst: daten.mwst ?? null,\n    brutto: daten.brutto ?? null,\n    iban: daten.iban ?? null,\n    parse_fehler: parseFehler,\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -800,
+        -128
+      ],
+      "id": "f335bc5e-3ed5-4b45-a7a3-775eb26d77f4",
+      "name": "KI-Antwort parsen"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "YOUR_DATATABLE_ID",
+          "mode": "list",
+          "cachedResultName": "Rechnungseingang",
+          "cachedResultUrl": "/projects/YOUR_PROJECT_ID/datatables/YOUR_DATATABLE_ID"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "lieferant",
+              "displayName": "lieferant",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "rechnungsnummer",
+              "displayName": "rechnungsnummer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "rechnungsdatum",
+              "displayName": "rechnungsdatum",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "faelligkeit",
+              "displayName": "faelligkeit",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "netto",
+              "displayName": "netto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "mwst",
+              "displayName": "mwst",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "brutto",
+              "displayName": "brutto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "iban",
+              "displayName": "iban",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "pruefhinweis",
+              "displayName": "pruefhinweis",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "optimizeBulk": false
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        336,
+        -144
+      ],
+      "id": "fcaebb0f-87da-414d-862e-6c566bd0c5cc",
+      "name": "Rechnung speichern"
+    },
+    {
+      "parameters": {
+        "jsCode": "const r = $input.first().json;\n\n// Zahl oder null (leere Felder dürfen NICHT als 0 durchrutschen)\nconst zahl = v => (v === null || v === undefined || v === '' || !Number.isFinite(Number(v))) ? null : Number(v);\nconst netto = zahl(r.netto);\nconst mwst = zahl(r.mwst);\nconst brutto = zahl(r.brutto);\n\n// Pflichtfelder prüfen, bevor irgendetwas gerechnet wird\nconst fehlend = [];\nif (!r.rechnungsnummer) fehlend.push('Rechnungsnummer');\nif (netto === null) fehlend.push('Netto');\nif (mwst === null) fehlend.push('MwSt');\nif (brutto === null) fehlend.push('Brutto');\n\nlet status, hinweis;\nif (r.parse_fehler) {\n  status = 'Fehler';\n  hinweis = 'KI-Antwort war kein gültiges JSON – Rechnung manuell prüfen.';\n} else if (fehlend.length > 0) {\n  status = 'Fehler';\n  hinweis = `Pflichtfeld(er) nicht erkannt: ${fehlend.join(', ')}.`;\n} else if (Math.abs((netto + mwst) - brutto) >= 0.02) {\n  // Rechen-Check (kleine Rundungstoleranz)\n  status = 'Fehler';\n  hinweis = `Rechenfehler: ${netto} + ${mwst} = ${(netto + mwst).toFixed(2)}, brutto = ${brutto}.`;\n} else if (netto >= 1000) {\n  // Freigabe-Schwelle: ab 1.000 € netto\n  status = 'Freigabe nötig';\n  hinweis = `Netto ${netto} € ab 1.000 € – Freigabe erforderlich.`;\n} else {\n  status = 'Bereit zum Verbuchen';\n  hinweis = 'Alle Prüfungen bestanden.';\n}\n\nconst { parse_fehler, ...rest } = r;\nreturn [{ json: { ...rest, netto, mwst, brutto, status, pruefhinweis: hinweis } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -592,
+        -128
+      ],
+      "id": "c820a6fe-bcf8-48ab-ae10-3471c22befb1",
+      "name": "Prüfregeln"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "YOUR_DATATABLE_ID",
+          "mode": "list",
+          "cachedResultName": "Rechnungseingang",
+          "cachedResultUrl": "/projects/YOUR_PROJECT_ID/datatables/YOUR_DATATABLE_ID"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "rechnungsnummer",
+              "keyValue": "={{ $json.rechnungsnummer }}",
+              "condition": "eq"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -384,
+        -128
+      ],
+      "id": "5320cee1-3e8d-4351-a153-0c5743ec8b0c",
+      "name": "Get row(s)",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const r = $input.first().json;\n\n// Ergebnis des Dublettencheck-Nodes nachschlagen (läuft als Seitenzweig).\n// Wenn nichts gefunden wurde, ist treffer leer -> keine Dublette.\nlet treffer = [];\ntry {\n  treffer = $('Get row(s)').all()\n    .map(i => i.json)\n    .filter(j => j && j.id !== undefined && j.id !== null && j.id !== '')\n    // nur echte Treffer mit derselben Rechnungsnummer zählen\n    .filter(j => String(j.rechnungsnummer) === String(r.rechnungsnummer));\n} catch (e) {\n  treffer = [];\n}\n\n// Ohne erkannte Rechnungsnummer ist kein Dublettencheck möglich (Status ist dann schon \"Fehler\").\nconst schonVorhanden = Boolean(r.rechnungsnummer) && treffer.length > 0;\n\nlet status = r.status;\nlet hinweis = r.pruefhinweis;\n\nif (schonVorhanden) {\n  status = 'Dublette';\n  hinweis = `Rechnungsnummer ${r.rechnungsnummer} existiert bereits (id ${treffer[0].id}) - nicht erneut verbucht.`;\n}\n\nreturn [{ json: { ...r, status, pruefhinweis: hinweis } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -176,
+        -128
+      ],
+      "id": "2e21ee9d-31e3-4281-a053-6f541172abe1",
+      "name": "Dublettencheck auswerten"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "59c21374-757d-4477-b2b0-652cfbf0cf51",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "Dublette",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        32,
+        -128
+      ],
+      "id": "6020a84b-1450-4685-a1bf-5fc4269bc1c1",
+      "name": "Keine Dublette?"
+    },
+    {
+      "parameters": {
+        "errorMessage": "={{ $json.pruefhinweis }}"
+      },
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        336,
+        64
+      ],
+      "id": "f279dd91-32ac-494f-8973-edbe4f9ef03c",
+      "name": "Dublette melden"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Rechnung hochladen": {
+      "main": [
+        [
+          {
+            "node": "PDF-Text extrahieren",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PDF-Text extrahieren": {
+      "main": [
+        [
+          {
+            "node": "KI-Auslese (GPT-4o-mini)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "KI-Auslese (GPT-4o-mini)": {
+      "main": [
+        [
+          {
+            "node": "KI-Antwort parsen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "KI-Antwort parsen": {
+      "main": [
+        [
+          {
+            "node": "Prüfregeln",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prüfregeln": {
+      "main": [
+        [
+          {
+            "node": "Get row(s)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Dublettencheck auswerten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dublettencheck auswerten": {
+      "main": [
+        [
+          {
+            "node": "Keine Dublette?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Keine Dublette?": {
+      "main": [
+        [
+          {
+            "node": "Rechnung speichern",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Dublette melden",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "93fe07ca-b1e8-4a64-8c18-adc3fb34a2c5",
+  "meta": {
+    "instanceId": "REDACTED"
+  },
+  "tags": []
+}
